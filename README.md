@@ -139,20 +139,8 @@ https://github.com/user-attachments/assets/3d8af4ef-edc7-4971-87b6-7a9c77ee0cb2
 
 https://github.com/user-attachments/assets/2d12defd-de3d-4a33-8178-b5af30d7f0c2
 
-## :computer: Training and Testing
+## :computer: Testing
 
-### Training
-Use the following command to start training the ACTalker model:
-
-```bash
-CUDA_VISIBLE_DEVICES=1,2,3,4,5,6,7 accelerate launch --main_process_port 12359 train.py --config config/train.yaml --exp_name ACTalker
-```
-
-**Training Requirements:**
-- **Minimum**: 8x RTX 3090 (24GB each)
-- **Recommended**: 8x A100 (40GB each) or 4x H100 (80GB each)
-- **Memory**: 128GB+ system RAM
-- **Storage**: 500GB+ high-speed SSD
 
 ### Testing (Inference)
 Use the following command for inference testing:
