@@ -1,0 +1,138 @@
+name: actalker
+channels:
+  - defaults
+  - conda-forge
+  - pytorch
+dependencies:
+  # Python and basic environment
+  - python=3.10
+  - pip
+  
+  # FFmpeg and video processing libraries (system level)
+  - ffmpeg
+  - x264
+  
+  # CUDA toolkit (compatible with PyTorch 2.0.1)
+  - cudatoolkit=11.8
+  
+  # Basic system libraries
+  - bzip2
+  - ca-certificates
+  - libffi
+  - openssl
+  - readline
+  - sqlite
+  - tk
+  - xz
+  - zlib
+  - ncurses
+  
+  # Development tools
+  - setuptools
+  - wheel
+  
+  # Python packages via pip
+  - pip:
+      # Core Deep Learning Frameworks (CUDA 11.8 Compatible)
+      - torch==2.0.1+cu118
+      - torchvision==0.15.2+cu118
+      - torchaudio==2.0.2+cu118
+      - --extra-index-url https://download.pytorch.org/whl/cu118
+      
+      # Mamba SSM and Related Dependencies
+      - mamba-ssm==1.2.0.post1
+      - triton==2.0.0
+      
+      # Diffusion Models
+      - diffusers==0.29.2
+      - transformers==4.40.2
+      - accelerate==0.20.3
+      
+      # HuggingFace Ecosystem
+      - huggingface-hub==0.34.1
+      - tokenizers==0.19.1
+      - safetensors>=0.3.1
+      
+      # Audio Processing
+      - librosa>=0.9.0
+      - scipy>=1.9.0
+      - soundfile>=0.12.1
+      - torchaudio>=0.15.0
+      - resampy>=0.4.0
+      - audio-separator>=0.17.0
+      
+      # Video Processing (requires FFmpeg and libx264)
+      - moviepy>=1.0.3
+      - imageio>=2.31.1
+      - imageio-ffmpeg>=0.4.9
+      - av>=12.0.0
+      - decord>=0.5.0
+      - ffmpeg-python>=0.2.0
+      
+      # Image Processing and Computer Vision
+      - opencv-python>=4.5.0
+      - opencv-contrib-python>=4.8.0
+      - Pillow>=8.0.0
+      - torchvision>=0.15.0
+      - mediapipe>=0.10.0
+      - albumentations>=1.4.0
+      - scikit-image>=0.22.0
+      
+      # Scientific Computing
+      - numpy==1.24.3
+      - einops>=0.6.0
+      - timm>=0.6.7
+      - xformers>=0.0.20
+      
+      # Deep Learning Utilities
+      - bitsandbytes>=0.42.0
+      - flash-attn>=2.0.0
+      - rotary-embedding-torch>=0.6.0
+      
+      # Configuration and Data Handling
+      - omegaconf>=2.3.0
+      - pyyaml>=6.0
+      - easydict>=1.10
+      - ml-collections>=0.1.1
+      
+      # Visualization and Monitoring
+      - matplotlib>=3.7.0
+      - seaborn>=0.12.0
+      - tqdm>=4.65.0
+      - wandb>=0.15.0
+      - tensorboard>=2.13.0
+      
+      # Web Framework and API
+      - fastapi>=0.100.0
+      - uvicorn>=0.23.0
+      - gradio>=3.50.0
+      - streamlit>=1.20.0
+      
+      # Audio-Visual Processing
+      - insightface>=0.7.3
+      - lpips>=0.1.4
+      - face-alignment>=1.3.5
+      
+      # Development and Testing
+      - pytest>=7.0.0
+      - black>=23.0.0
+      - ipdb>=0.13.0
+      - fire>=0.5.0
+      
+      # System Monitoring
+      - psutil>=5.9.0
+      - gpustat>=1.1.0
+      - nvidia-ml-py>=11.0.0
+      
+      # Additional Dependencies
+      - requests>=2.28.0
+      - pandas>=2.0.0
+      - h5py>=3.8.0
+      - joblib>=1.2.0
+      - scikit-learn>=1.3.0
+      - protobuf>=3.20.0
+      - regex>=2023.0.0
+      - filelock>=3.12.0
+      - typing-extensions>=4.5.0
+      - packaging>=23.0
+      - fsspec>=2023.6.0

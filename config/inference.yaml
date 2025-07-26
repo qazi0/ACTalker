@@ -1,0 +1,141 @@
+data:
+  train_bs: 1
+  image_size: 640
+  n_sample_frames: 25
+  num_workers: 8
+
+
+val:
+  validation_steps: 250000
+
+solver:
+  gradient_accumulation_steps: 4
+  uncond_steps: 10
+  mixed_precision: 'fp16'
+  enable_xformers_memory_efficient_attention: True
+  gradient_checkpointing: True 
+  max_train_steps: 250000
+  max_grad_norm: 1.0
+  # lr
+  learning_rate: 1.0e-5
+  scale_lr: False 
+  lr_warmup_steps: 10
+  lr_scheduler: 'constant'
+
+  # optimizer
+  use_8bit_adam: False 
+  adam_beta1: 0.9
+  adam_beta2: 0.999
+  adam_weight_decay:  1.0e-2
+  adam_epsilon: 1.0e-8
+
+master_port: 6069
+model_parallel_size: 1
+data_parallel: 'fsdp'
+# precision: 'fp16'
+grad_precision: 'fp32'
+
+allow_tf32: False
+total_limit: 3
+save_model_epoch_interval: 20
+use_ema: False
+conditioning_dropout_prob: 0.10
+noise_offset: 0.05
+noise_aug_strength: 0.00
+checkpointing_steps: 2000
+pretrained_model_name_or_path: "./stable-video-diffusion-img2vid-xt-1-1"
+
+full_ft: True
+
+# Please specify your own checkpoint paths below
+# unet_checkpoint_path: ""
+# pose_guider_checkpoint_path: ""
+# audio_linear_checkpoint_path: ""
+# adapter_module_checkpoint_path: ""
+# id_proj_checkpoint_path: ""
+unet_checkpoint_path: "./tmp-136000/unet-136000.pth"
+pose_guider_checkpoint_path: "./tmp-136000/pose_guider-136000.pth"
+audio_linear_checkpoint_path: "./tmp-136000/audio_linear-136000.pth"
+adapter_module_checkpoint_path: "./tmp-136000/adapter_module-136000.pth"
+id_proj_checkpoint_path: "./tmp-136000/id_proj_model-136000.pth"
+vasa_linear_checkpoint_path: "./tmp-136000/vasa_linear-136000.pth"
+unet_cls: 'src.models.base.unet_spatio_temporal_condition_mambaID_v10_two_ip.UNetSpatioTemporalConditionModel'
+vasa_checkpoint_path: "vasa_feat/MX31c_32k.ckpt"
+
+resume_from_checkpoint: False
+weight_dtype: 'fp16'  # [fp16, fp32]
+
+num_inference_steps: 25
+fps: 12.5
+decode_chunk_size: 10
+motion_bucket_id: 12
+motion_bucket_id_exp: 20
+image_size: 576
+area: 1.2
+frame_num: 500
+step: 2
+overlap: 0
+shift_offset: 7
+min_appearance_guidance_scale: 2.0
+max_appearance_guidance_scale: 2.0
+audio_guidance_scale: 7.5
+vasa_guidance_scale: 3
+
+i2i_noise_strength: 1.0
+ip_audio_scale: 1.25
+vasa_expression_dim: 1018 # 1018
+
+crop: False
+expand_ratio: 0.9
+aspect_type: '9:16'
+use_bfr: False
+use_interframe: False
+
+# ============ Model Paths Configuration ============
+model_paths:
+  # Whisper model for audio processing
+  whisper_model: "enhance_model/whisper-tiny/"
+  
+  # RIFE model for frame interpolation
+  rife_model: "enhance_model/RIFE/"
+  
+  # BFR enhancement model
+  bfr_enhance_model: "enhance_model/yt_enhance/YT-enhance-512.pth"
+  
+  # Face alignment models base directory
+  face_align_base_dir: "enhance_model/yt_align/"
+  
+  # Teeth enhancement model
+  teeth_enhance_model: "enhance_model/yt_teeth"
+  
+  # Arcface model for face recognition
+  arcface_model: "enhance_model//arc2face/arcface_torch_models/backbone.pth"
+
+
+# Please specify your own dataset paths below
+# test_image_dir: ./data/test_images/
+# test_audio_dir: ./data/test_audio/
+# save_prefix: test_data
+
+test_image_dir: "./data/test_images/"
+test_audio_dir: [
+  # './data/test_audio/test_data_1_2.json',
+  # './data/test_audio/test_data_1_3.json',
+  # './data/test_audio/test_data_1_4.json',
+  './data/test_audio/test_data.json',
+
+]
+save_prefix: testset-0826
+
+
+# save_dir: 'results'
+
+seed: 72589
+exp_name: 'mambaID-v10-join-switch-two-ip-v2-full-vasa'
+# output_dir: './exp_output'  
+output_dir: 'exp_output'
+
+wandb_project: 'actalker'
+wandb_entity: 'your_wandb_username'
+wandb_log_dir: 'wandb'
+# wandb_key: "your_wandb_api_key_here"

@@ -1,0 +1,2 @@
+#onnxruntime-gpu  1.7:cuda11.0  1.5-1.6:cuda10.2   1.2-1.4:cuda10.1
+onnxruntime-gpu==1.6.0
