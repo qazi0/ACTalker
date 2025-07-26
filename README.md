@@ -122,7 +122,7 @@ ACTalker requires pretrained models to function properly. The main model needed 
 - **License**: Requires agreement to Stability AI Community License
 
 #### 2. Pretrained checkpoints
-- **Model**: [`stabilityai/stable-video-diffusion-img2vid-xt-1-1`](https://huggingface.co/stabilityai/stable-video-diffusion-img2vid-xt-1-1)
+- **Model**: [`pretrained Checkpoints`](https://hkustconnect-my.sharepoint.com/:f:/g/personal/fhongac_connect_ust_hk/ErbIGCYPpIRDjFcPgtYXoMABt5HWl5XS_He18Tii4wGQ5A?e=TjmfjR)
 
 
 ## TL;DR:
