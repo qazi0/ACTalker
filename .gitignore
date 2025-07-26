@@ -137,9 +137,6 @@ scripts/codetest/
 .idea
 .vscode
 mlruns/
-*.mp4
-*.png
-*.jpg
 log/
 tmp/
 user_test/
