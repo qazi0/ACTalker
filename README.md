@@ -168,8 +168,6 @@ CUDA_VISIBLE_DEVICES=0 python Inference.py --config config/inference.yaml --ref 
 | 1 | Expression only | Reference image + Video | Expression transfer | Medium |
 | 2 | Audio + Expression | Reference image + Audio + Video | Full control | Slowest |
 
-### Performance Benchmark
-
 
 **Optimization Tips:**
 - Use `--overlap` parameter for long video segmented processing
