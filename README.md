@@ -157,8 +157,7 @@ CUDA_VISIBLE_DEVICES=0 python Inference.py --config config/inference.yaml --ref 
 - `--mode`: Inference mode
   - `0`: Audio-only driven
   - `1`: VASA control only
-  - `2`: Expression control only (recommended)
-  - `3`: Audio + Expression joint control
+  - `2`: Audio + Expression joint control
 - `--exp_name`: Experiment name
 
 ### Inference Mode Details
@@ -166,19 +165,11 @@ CUDA_VISIBLE_DEVICES=0 python Inference.py --config config/inference.yaml --ref 
 | Mode | Control Signal | Input Requirements | Use Case | Inference Speed |
 |------|---------------|-------------------|----------|----------------|
 | 0 | Audio only | Reference image + Audio | Speech-driven | Fastest |
-| 1 | VASA only | Reference image + Video | Pose copying | Medium |
-| 2 | Expression only | Reference image + Video | Expression transfer | Medium |
-| 3 | Audio + Expression | Reference image + Audio + Video | Full control | Slowest |
+| 1 | Expression only | Reference image + Video | Expression transfer | Medium |
+| 2 | Audio + Expression | Reference image + Audio + Video | Full control | Slowest |
 
 ### Performance Benchmark
 
-**Test Configuration**: H100 80GB, 25 inference steps, 576x576 resolution
-
-| Mode | Video Length | Inference Time | Peak GPU VRAM | Output Quality |
-|------|--------------|----------------|---------------|----------------|
-| Mode 0 | 5s (125 frames) | ~4 minutes | ~22GB | Good |
-| Mode 2 | 5s (125 frames) | ~6 minutes | ~24GB | Excellent |
-| Mode 3 | 5s (125 frames) | ~8 minutes | ~26GB | Best |
 
 **Optimization Tips:**
 - Use `--overlap` parameter for long video segmented processing
