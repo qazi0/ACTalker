@@ -160,14 +160,6 @@ CUDA_VISIBLE_DEVICES=0 python Inference.py --config config/inference.yaml --ref 
   - `2`: Audio + Expression joint control
 - `--exp_name`: Experiment name
 
-### Inference Mode Details
-
-| Mode | Control Signal | Input Requirements | Use Case | Inference Speed |
-|------|---------------|-------------------|----------|----------------|
-| 0 | Audio only | Reference image + Audio | Speech-driven | Fastest |
-| 1 | Expression only | Reference image + Video | Expression transfer | Medium |
-| 2 | Audio + Expression | Reference image + Audio + Video | Full control | Slowest |
-
 
 **Optimization Tips:**
 - Use `--overlap` parameter for long video segmented processing

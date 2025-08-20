@@ -257,7 +257,7 @@ def main(config, args):
     # video_path = prefix  + ".mp4"
     # audio_video_path = prefix + "_audio.mp4"
     save_videos_grid(video, video_path, n_rows=video.shape[0], fps=cfg.fps * 2 if cfg.use_interframe else cfg.fps)
-    os.system(f"ffmpeg -i '{video_path}' -i '{drive_audio_path}' -shortest '{audio_video_path}' -y; rm '{video_path}'")
+    os.system(f"ffmpeg -i '{video_path}' -i '{drive_audio_path}' -c:v libopenh264 -c:a aac -shortest '{audio_video_path}' -y; rm '{video_path}'")
 
 
 def test(
