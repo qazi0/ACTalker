@@ -257,7 +257,9 @@ def main(config, args):
     # video_path = prefix  + ".mp4"
     # audio_video_path = prefix + "_audio.mp4"
     save_videos_grid(video, video_path, n_rows=video.shape[0], fps=cfg.fps * 2 if cfg.use_interframe else cfg.fps)
-    os.system(f"ffmpeg -i '{video_path}' -i '{drive_audio_path}' -c:v libopenh264 -c:a aac -shortest '{audio_video_path}' -y; rm '{video_path}'")
+    print(f"Successfully saved videio to {video_path}, {os.path.isfile(video_path)}")
+    
+    os.system(f"ffmpeg -i '{video_path}' -i '{drive_audio_path}' -vcodec: libx264 -c:v libx264 -c:a aac -shortest '{audio_video_path}' -y")
 
 
 def test(
@@ -303,10 +305,6 @@ def test(
     
     audio_feature = batch['audio_feature']
     audio_len = batch['audio_len']
-    vasa_face_image = batch['vasa_face_image']
-    vasa_pose_image = batch['vasa_pose_image']
-    vasa_face_image = vasa_face_image.to(device="cuda")
-    vasa_pose_image = vasa_pose_image.to(device="cuda")
     
     step = int(config.step)
 
@@ -339,28 +337,35 @@ def test(
     else:
         gate = [1,1]
     # get vasa
-    crop_face = batch['vasa_face_image']
-    crop_face = rearrange(crop_face, 'b f c h w -> (b f) c h w')
-    # if gate[0] == 1 and gate[1] == 1:
-    #     crop_face[:,:,128:]=0
-    vasa_feature = expression_model(crop_face) # bs*f, 512
-   
-    # get pose
-    vasa_pose_img = batch['vasa_pose_image']
-    vasa_pose_img = rearrange(vasa_pose_img, 'b f c h w -> (b f) c h w')
-    vasa_pose_fea = pose_model(vasa_pose_img * 2 - 1.0)
+    if args.mode == 0 or batch['vasa_face_image'] is None or batch['vasa_pose_image'] is None:
+        # Audio-only mode – skip expensive VASA computations and create dummy placeholders
+        dummy_vasa_dim = config.vasa_expression_dim + 6  # expression embedding + 6 pose dims (rot, trans)
+        vasa_prompts = torch.zeros(1, dummy_vasa_dim, device="cuda")
+        uncond_vasa_prompts = torch.zeros_like(vasa_prompts)
+        vasa_pose_img = torch.zeros(1, 3, 256, 256, device="cuda")
+    else:
+        crop_face = batch['vasa_face_image']
+        crop_face = rearrange(crop_face, 'b f c h w -> (b f) c h w')
+        # if gate[0] == 1 and gate[1] == 1:
+        #     crop_face[:,:,128:]=0
+        vasa_feature = expression_model(crop_face) # bs*f, 512
+       
+        # get pose
+        vasa_pose_img = batch['vasa_pose_image']
+        vasa_pose_img = rearrange(vasa_pose_img, 'b f c h w -> (b f) c h w')
+        vasa_pose_fea = pose_model(vasa_pose_img * 2 - 1.0)
 
+        # (1,3) / (1,3)
+        rot, trans = vasa_pose_fea['rotation'], vasa_pose_fea['translation']
+        vasa_prompts = torch.cat([vasa_feature, rot, trans * 0.], dim=-1) # bs*f, 518
+        vasa_prompts, vasa_pose_fea = vasa_prompts[...,:-6], vasa_prompts[..., -6:]
+        
+        uncond_vasa_prompts = vasa_linear(torch.zeros_like(vasa_prompts))
 
-    # (1,3) / (1,3)
-    rot, trans = vasa_pose_fea['rotation'], vasa_pose_fea['translation']
-    vasa_prompts = torch.cat([vasa_feature, rot, trans * 0.], dim=-1) # bs*f, 518
-    vasa_prompts, vasa_pose_fea = vasa_prompts[...,:-6], vasa_prompts[..., -6:]
-    
-    uncond_vasa_prompts = vasa_linear(torch.zeros_like(vasa_prompts))
-
-    vasa_prompts = vasa_linear(vasa_prompts)
-    vasa_prompts = torch.cat([vasa_prompts, vasa_pose_fea], dim=-1)
-    uncond_vasa_prompts = torch.cat([uncond_vasa_prompts, torch.zeros_like(vasa_pose_fea)], dim=-1)
+        vasa_prompts = vasa_linear(vasa_prompts)
+        vasa_prompts = torch.cat([vasa_prompts, vasa_pose_fea], dim=-1)
+        uncond_vasa_prompts = torch.cat([uncond_vasa_prompts, torch.zeros_like(vasa_pose_fea)], dim=-1)
+        
     vasa_prompts_list = []
     uncond_vasa_prompts_list = []
     gt_vasa = []
