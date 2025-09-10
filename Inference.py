@@ -8,6 +8,7 @@ import numpy as np
 from omegaconf import OmegaConf
 import glob
 from tqdm import tqdm
+import time
 import json
 import cv2
 import pdb
@@ -178,11 +179,12 @@ def main(config, args):
     wav2vec = WhisperModel.from_pretrained(cfg.model_paths.whisper_model).to(device="cuda").eval()
     
     wav2vec.requires_grad_(False)
-
+    # Initialize RIFE placeholder to allow dynamic loading later
+    rife = None
     if cfg.use_interframe:
         rife = RIFEModel()
         rife.load_model(cfg.model_paths.rife_model)
-        
+   
     device_id = 0
     device = 'cuda:{}'.format(device_id) if device_id > -1 else 'cpu'
    
@@ -201,6 +203,95 @@ def main(config, args):
     
     # Cast mamba parameters to float32
     
+    # Helper function to perform a single inference run using the (already-loaded) heavy models
+    def perform_inference(run_cfg):
+        """Run inference once with the supplied config without re-loading heavy models."""
+        nonlocal global_step, enhance_instance, rife
+        # Ensure the global `config` used inside `test()` points to the latest cfg
+        global config
+        config = run_cfg
+
+        # (Re-)initialise RIFE model only if requested in the new config and not yet available
+        if run_cfg.use_interframe and rife is None:
+            rife = RIFEModel()
+            rife.load_model(run_cfg.model_paths.rife_model)
+
+        exp_name_local = run_cfg.exp_name
+        if run_cfg.get('save_dir', None):
+            save_dir_local = f"{run_cfg.save_dir}/{exp_name_local}"
+        else:
+            save_dir_local = f"{run_cfg.output_dir}/{exp_name_local}"
+        os.makedirs(save_dir_local, exist_ok=True)
+
+        image_size = run_cfg.image_size
+        image_path = args.ref
+        drive_audio_path = args.audio
+        vasa_vido = args.video
+        image_name = os.path.basename(image_path)
+
+        prefix = (
+            f"{save_dir_local}/{run_cfg.frame_num}-infer_steps{config.num_inference_steps}-sample_frames{config.data.n_sample_frames}-inter{config.use_interframe}/{image_name}"
+        )
+        video_path = prefix + ".mp4"
+        audio_video_path = prefix + "_audio.mp4"
+
+        print('crop:', run_cfg.crop)
+        test_data = preprocess(
+            image_path,
+            drive_audio_path,
+            video_path=vasa_vido,
+            limit=run_cfg.frame_num,
+            image_size=image_size,
+            area=run_cfg.area,
+            crop=run_cfg.crop,
+            expand_ratio=run_cfg.expand_ratio,
+            enhance_instance=enhance_instance,
+            aspect_type=run_cfg.aspect_type,
+            with_id_encoder=True,
+        )
+        height, width = test_data['ref_img'].shape[-2:]
+        print('height, width: ', height, width)
+
+        video = test(
+            vae=vae,
+            unet=unet,
+            wav_enc=wav2vec,
+            audio_pe=audio_linear,
+            pose_guider=pose_guider,
+            id_proj_model=id_proj_model,
+            scheduler=val_noise_scheduler,
+            width=width,
+            height=height,
+            batch=test_data,
+            vasa_linear=vasa_linear,
+            expression_model=expression_model,
+            pose_model=pose_model,
+        )
+
+        # Optional frame interpolation
+        if run_cfg.use_interframe and rife is not None:
+            out = video.to('cuda')
+            results = []
+            video_len = out.shape[2]
+            for idx in tqdm(range(video_len - 1), ncols=0):
+                I1 = out[:, :, idx]
+                I2 = out[:, :, idx + 1]
+                middle = rife.inference(I1, I2).clamp(0, 1).detach()
+                results.append(out[:, :, idx])
+                results.append(middle)
+            results.append(out[:, :, video_len - 1])
+            video = torch.stack(results, 2).cpu()
+
+        save_videos_grid(
+            video,
+            video_path,
+            n_rows=video.shape[0],
+            fps=run_cfg.fps * 2 if run_cfg.use_interframe else run_cfg.fps,
+        )
+        os.system(
+            f"ffmpeg -i '{video_path}' -i '{drive_audio_path}' -c:v libx264 -c:a aac -shortest '{audio_video_path}' -y;"
+        )
+
     exp_name = cfg.exp_name
     if config.get('save_dir', None):
         save_dir = f"{config.save_dir}/{exp_name}"
@@ -220,11 +311,14 @@ def main(config, args):
     print(image_path)
     image_name = os.path.basename(image_path)
     # image_name = image_path.replace(demo_image_dir, '')
-    prefix = f"{save_dir}/visuals/{global_step:06d}-{image_size}-{config.frame_num}-{cfg.min_appearance_guidance_scale}-{cfg.max_appearance_guidance_scale}-{config.audio_guidance_scale}-{config.vasa_guidance_scale}-{config.ip_audio_scale}-motion{config.motion_bucket_id}-motion{config.motion_bucket_id_exp}-area{config.area}-overlap{config.overlap}-shift{config.shift_offset}-noise{config.i2i_noise_strength}-crop{config.crop}-{config.expand_ratio}-bfr{config.use_bfr}-interframe{config.use_interframe}/{config.save_prefix}/{image_name}"
+    prefix = f"{save_dir}/infer_steps{config.num_inference_steps}-sample_frames{config.data.n_sample_frames}-inter{config.use_interframe}/{image_name}"
+
     video_path = prefix  + ".mp4"
     audio_video_path = prefix + "_audio.mp4"
     audio_name = os.path.basename(drive_audio_path)
     print('crop:', config.crop)
+    start_time = time.time()
+    
     test_data = preprocess(image_path, drive_audio_path,video_path=vasa_vido, limit=config.frame_num, image_size=image_size, area=config.area, crop=config.crop, expand_ratio=config.expand_ratio, enhance_instance=enhance_instance, aspect_type=config.aspect_type, with_id_encoder=True)
     height, width = test_data['ref_img'].shape[-2:]
     print('height, width: ', height, width)
@@ -264,6 +358,46 @@ def main(config, args):
     # audio_video_path = prefix + "_audio.mp4"
     save_videos_grid(video, video_path, n_rows=video.shape[0], fps=cfg.fps * 2 if cfg.use_interframe else cfg.fps)
     os.system(f"ffmpeg -i '{video_path}' -i '{drive_audio_path}' -c:v libx264 -c:a aac -shortest '{audio_video_path}' -y;")
+    net_time = time.time() - start_time
+    print(f"Inference took {net_time:.2f} seconds.")
+
+    # ------------------------------------------------------------------
+    # Interactive loop to allow repeated inference with new lightweight
+    # configuration changes without re-loading the heavy models.
+    # ------------------------------------------------------------------
+    def _show_params(c):
+        keys_flat = ['frame_num', 'step', 'num_inference_steps', 'fps', 'decode_chunk_size']
+        print('\nUsing parameters:')
+        for k in keys_flat:
+            if k in c:
+                print(f"  {k}: {c[k]}")
+        # n_sample_frames lives under data
+        if 'data' in c and 'n_sample_frames' in c.data:
+            print(f"  n_sample_frames: {c.data.n_sample_frames}")
+        print('')
+
+    while True:
+        try:
+            new_cfg_path = input("\nInference completed. Enter path to a new YAML config to run again (or press Enter to exit): ").strip()
+        except EOFError:
+            break
+        if new_cfg_path == "":
+            print("Exiting inference loop.")
+            break
+        if not os.path.exists(new_cfg_path):
+            print(f"Config file {new_cfg_path} not found. Please try again.")
+            continue
+        try:
+            new_cfg = OmegaConf.load(new_cfg_path)
+        except Exception as e:
+            print(f"Failed to load config: {e}")
+            continue
+
+        _show_params(new_cfg)
+        start_time = time.time()
+        perform_inference(new_cfg)
+        net_time = time.time() - start_time
+        print(f"Inference took {net_time:.2f} seconds.")
 
 
 def test(
