@@ -4,7 +4,6 @@ torchvision==0.15.2+cu118
 torchaudio==2.0.2+cu118
 
 # Mamba SSM and Related Dependencies
-mamba-ssm==1.2.0.post1
 triton==2.0.0
 
 # Diffusion Models
@@ -73,6 +72,15 @@ mpmath<1.4,>=1.1.0
 networkx>=2.8.0
 jinja2>=3.0.0
 sympy>=1.10.0
+
+timm
+pyzorder
+av
+scikit-video
+onedrivedownloader
+pandas
+decord
+numpy-hilbert-curve
 
 # HF-XET (Optional, for large file downloads)
 hf-xet<2.0.0,>=1.1.3
