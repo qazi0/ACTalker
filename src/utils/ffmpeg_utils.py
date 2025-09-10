@@ -83,7 +83,7 @@ class VideoUtils(object):
         else:
             
             # fps = 25
-            codec_name = 'libopenh264'
+            codec_name = 'libx264'
             bit_rate=None
             pix_fmt = 'yuv420p'
 
