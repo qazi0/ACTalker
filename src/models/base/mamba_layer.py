@@ -34,7 +34,7 @@ except ImportError as e:
         raise NotImplementedError("Mamba SSM not available - falling back to standard attention")
 import numpy as np
 try:
-    from hilbert.hilbert import encode, decode
+    from hilbert import encode, decode
     print("✓ Hilbert curve functions loaded")
 except ImportError as e:
     print(f"⚠️ Hilbert curve not available: {e}")
