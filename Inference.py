@@ -140,24 +140,29 @@ def main(config, args):
         strict=True,
     )
 
-    # 加载表情模型
-    expression_model = HeadExpression(512).to(device="cuda")
-    checkpoint = torch.load(cfg.vasa_checkpoint_path, map_location='cpu')
-    generator = checkpoint['generator']
-    expression_data = {}
-    for key in generator:
-        if 'expression_model.' in key:
-            expression_data[key[len('expression_model.'):]] = generator[key]
-    expression_model.load_state_dict(expression_data, strict=True)
-    expression_model.to(device="cuda")
-    expression_model.eval()
-    expression_model.requires_grad_(False)  
-    
-    pose_model = HeadPose_train()
-    pose_model.load_state_dict(checkpoint['pose_model'])
-    pose_model.to(device="cuda")
-    pose_model.eval()
-    pose_model.requires_grad_(False) 
+    # Load VASA expression & pose models only if they are actually needed
+    if args.mode != 0:
+        # 加载表情模型
+        expression_model = HeadExpression(512).to(device="cuda")
+        checkpoint = torch.load(cfg.vasa_checkpoint_path, map_location='cpu')
+        generator = checkpoint['generator']
+        expression_data = {}
+        for key in generator:
+            if 'expression_model.' in key:
+                expression_data[key[len('expression_model.'):]] = generator[key]
+        expression_model.load_state_dict(expression_data, strict=True)
+        expression_model.to(device="cuda")
+        expression_model.eval()
+        expression_model.requires_grad_(False)  
+        
+        pose_model = HeadPose_train()
+        pose_model.load_state_dict(checkpoint['pose_model'])
+        pose_model.to(device="cuda")
+        pose_model.eval()
+        pose_model.requires_grad_(False) 
+    else:
+        expression_model = None
+        pose_model = None
 
     if cfg.weight_dtype == "fp16":
         weight_dtype = torch.float16
@@ -193,6 +198,7 @@ def main(config, args):
     vae.to(weight_dtype)
     pose_guider.to(weight_dtype)
     unet.to(weight_dtype)
+    
     # Cast mamba parameters to float32
     
     exp_name = cfg.exp_name
@@ -257,9 +263,7 @@ def main(config, args):
     # video_path = prefix  + ".mp4"
     # audio_video_path = prefix + "_audio.mp4"
     save_videos_grid(video, video_path, n_rows=video.shape[0], fps=cfg.fps * 2 if cfg.use_interframe else cfg.fps)
-    print(f"Successfully saved videio to {video_path}, {os.path.isfile(video_path)}")
-    
-    os.system(f"ffmpeg -i '{video_path}' -i '{drive_audio_path}' -vcodec: libx264 -c:v libx264 -c:a aac -shortest '{audio_video_path}' -y")
+    os.system(f"ffmpeg -i '{video_path}' -i '{drive_audio_path}' -c:v libx264 -c:a aac -shortest '{audio_video_path}' -y;")
 
 
 def test(
@@ -365,7 +369,7 @@ def test(
         vasa_prompts = vasa_linear(vasa_prompts)
         vasa_prompts = torch.cat([vasa_prompts, vasa_pose_fea], dim=-1)
         uncond_vasa_prompts = torch.cat([uncond_vasa_prompts, torch.zeros_like(vasa_pose_fea)], dim=-1)
-        
+
     vasa_prompts_list = []
     uncond_vasa_prompts_list = []
     gt_vasa = []
@@ -445,9 +449,10 @@ def test(
     video = (video*0.5 + 0.5).clamp(0, 1)
     video = torch.cat([video.to(device="cuda")], dim=0).cpu()
 
-    gt_vasa = torch.stack(gt_vasa, 1)
-    gt_vasa_resized = F.interpolate(gt_vasa, size=video.shape[-2:], mode='bilinear', align_corners=False).unsqueeze(0).cpu()
-    video = torch.cat([video, gt_vasa_resized], dim=-1)
+    if args.mode != 0 and len(gt_vasa) > 0:
+        gt_vasa = torch.stack(gt_vasa, 1)
+        gt_vasa_resized = F.interpolate(gt_vasa, size=video.shape[-2:], mode='bilinear', align_corners=False).unsqueeze(0).cpu()
+        video = torch.cat([video, gt_vasa_resized], dim=-1)
     # del tmp_denoising_unet
     del pipe
     torch.cuda.empty_cache()
